@@ -1,11 +1,10 @@
 from pathlib import Path
+import sys
 
-import joblib
 import numpy as np
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
+import plotly.graph_objects as go
 
 
 # ============================================================
@@ -21,200 +20,492 @@ st.set_page_config(
 
 
 # ============================================================
-# PATHS
+# PATH CONFIGURATION
 # ============================================================
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parents[1]
 
-DATA = BASE_DIR / "data" / "processed" / "flowcast_features.csv"
-MODEL_DIR = BASE_DIR / "models" / "classical"
-DEEP_MODEL_DIR = BASE_DIR / "models" / "deep_learning"
-REPORT_DIR = BASE_DIR / "reports"
+if str(BASE_DIR) not in sys.path:
+    sys.path.append(str(BASE_DIR))
 
 
 # ============================================================
-# DATA LOADING
+# CUSTOM CSS
+# ============================================================
+
+st.markdown(
+    """
+    <style>
+
+    /* ========================================================
+       GLOBAL
+    ======================================================== */
+
+    .stApp {
+        background: #111214;
+        color: #E5E7EB;
+        font-family: Inter, Arial, sans-serif;
+    }
+
+    [data-testid="stAppViewContainer"] {
+        background: #111214;
+    }
+
+    [data-testid="stHeader"] {
+        background: #111214;
+    }
+
+    [data-testid="stToolbar"] {
+        right: 20px;
+    }
+
+    .block-container {
+        padding-top: 28px;
+        padding-bottom: 30px;
+        max-width: 1600px;
+    }
+
+
+    /* ========================================================
+       SIDEBAR
+    ======================================================== */
+
+    [data-testid="stSidebar"] {
+        background: #0D0E10;
+        border-right: 1px solid #25282D;
+    }
+
+    [data-testid="stSidebar"] > div:first-child {
+        padding-top: 20px;
+    }
+
+    .sidebar-brand {
+        padding: 8px 12px 20px 12px;
+        border-bottom: 1px solid #25282D;
+        margin-bottom: 22px;
+    }
+
+    .brand-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .brand-icon {
+        font-size: 28px;
+    }
+
+    .brand-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: #F3F4F6;
+        margin: 0;
+    }
+
+    .brand-subtitle {
+        font-size: 14px;
+        color: #9CA3AF;
+        margin-top: 3px;
+    }
+
+    .section-title {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        color: #8B93A1;
+        margin: 18px 8px 8px 8px;
+    }
+
+
+    /* ========================================================
+       SIDEBAR BUTTONS
+    ======================================================== */
+
+    [data-testid="stSidebar"] .stButton button {
+        width: 100%;
+        text-align: left;
+        justify-content: flex-start;
+        background: transparent;
+        color: #C7CBD1;
+        border: none;
+        border-radius: 9px;
+        padding: 11px 14px;
+        font-size: 16px;
+        font-weight: 500;
+        margin-bottom: 3px;
+    }
+
+    [data-testid="stSidebar"] .stButton button:hover {
+        background: #171A1F;
+        color: #FFFFFF;
+    }
+
+    .active-menu {
+        background: #15355D;
+        border-radius: 9px;
+        padding: 11px 14px;
+        color: #9EC5FF;
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 3px;
+    }
+
+
+    /* ========================================================
+       MAIN HEADER
+    ======================================================== */
+
+    .breadcrumb {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        color: #8FAFD6;
+        margin-bottom: 7px;
+    }
+
+    .page-title {
+        font-size: 29px;
+        font-weight: 700;
+        color: #F1F3F5;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .page-subtitle {
+        font-size: 17px;
+        font-weight: 500;
+        color: #A1A6AE;
+        margin-top: 5px;
+        margin-bottom: 16px;
+    }
+
+    .header-line {
+        height: 1px;
+        width: 100%;
+        background: #2A2D31;
+        margin-bottom: 18px;
+    }
+
+
+    /* ========================================================
+       KPI CARDS
+    ======================================================== */
+
+    .metric-card {
+        background: #1A1B1D;
+        border: 1px solid #30343A;
+        border-radius: 16px;
+        padding: 26px 20px;
+        min-height: 158px;
+        transition: 0.2s ease;
+    }
+
+    .metric-card:hover {
+        border-color: #3F6FA6;
+        transform: translateY(-2px);
+    }
+
+    .metric-label {
+        font-size: 14px;
+        font-weight: 700;
+        color: #9298A1;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        margin-bottom: 7px;
+    }
+
+    .metric-value {
+        font-size: 31px;
+        font-weight: 700;
+        color: #E8EAED;
+        line-height: 1.1;
+    }
+
+    .metric-subtitle {
+        font-size: 15px;
+        color: #8F949C;
+        margin-top: 7px;
+    }
+
+
+    /* ========================================================
+       CHART CARDS
+    ======================================================== */
+
+    .chart-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #E2E5E9;
+        margin-bottom: 2px;
+    }
+
+    .chart-subtitle {
+        font-size: 15px;
+        color: #9298A1;
+        margin-bottom: 12px;
+    }
+
+    .chart-card {
+        background: #1A1B1D;
+        border: 1px solid #30343A;
+        border-radius: 16px;
+        padding: 20px 18px 10px 18px;
+        min-height: 420px;
+    }
+
+
+    /* ========================================================
+       LEGEND
+    ======================================================== */
+
+    .legend-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        margin-top: 10px;
+        margin-bottom: 5px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: #B4B7BC;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .legend-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        display: inline-block;
+    }
+
+
+    /* ========================================================
+       DATA SECTION
+    ======================================================== */
+
+    .data-card {
+        background: #1A1B1D;
+        border: 1px solid #30343A;
+        border-radius: 16px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    /* ========================================================
+       STREAMLIT DATAFRAME
+    ======================================================== */
+
+    [data-testid="stDataFrame"] {
+        border: 1px solid #30343A;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+
+    /* ========================================================
+       RESPONSIVE
+    ======================================================== */
+
+    @media (max-width: 900px) {
+
+        .page-title {
+            font-size: 24px;
+        }
+
+        .metric-value {
+            font-size: 26px;
+        }
+
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# ============================================================
+# DATASET SEARCH
+# ============================================================
+
+def find_dataset():
+
+    possible_files = [
+        BASE_DIR / "data" / "processed" / "flowcast_features.csv",
+        BASE_DIR / "data" / "processed" / "traffic_features.csv",
+        BASE_DIR / "data" / "flowcast_features.csv",
+        BASE_DIR / "data" / "traffic_data.csv",
+        BASE_DIR / "dataset" / "flowcast_features.csv",
+        BASE_DIR / "flowcast_features.csv",
+    ]
+
+    for file_path in possible_files:
+        if file_path.exists():
+            return file_path
+
+    # Search entire project
+    possible_names = [
+        "flowcast_features.csv",
+        "traffic_features.csv",
+        "traffic_data.csv",
+        "processed_data.csv",
+    ]
+
+    for name in possible_names:
+
+        found_files = list(BASE_DIR.rglob(name))
+
+        if found_files:
+            return found_files[0]
+
+    return None
+
+
+# ============================================================
+# LOAD DATA
 # ============================================================
 
 @st.cache_data
 def load_data():
 
-    if not DATA.exists():
+    dataset_path = find_dataset()
+
+    if dataset_path is None:
         return pd.DataFrame()
 
     try:
-        df = pd.read_csv(DATA)
 
-        if "timestamp" in df.columns:
-            df["timestamp"] = pd.to_datetime(
-                df["timestamp"],
-                errors="coerce"
-            )
+        dataframe = pd.read_csv(dataset_path)
 
-        return df
+        return dataframe
 
-    except Exception as e:
-        st.error(f"Error loading dataset: {e}")
+    except Exception as error:
+
+        st.error(f"Error loading dataset: {error}")
+
         return pd.DataFrame()
-
-
-@st.cache_resource
-def load_volume_model():
-
-    model_path = MODEL_DIR / "xgboost_volume.joblib"
-
-    if not model_path.exists():
-        return None
-
-    try:
-        return joblib.load(model_path)
-    except Exception:
-        return None
 
 
 df = load_data()
 
 
 # ============================================================
-# PLOTLY THEME
+# COLUMN DETECTION
 # ============================================================
 
-def apply_theme(fig):
+def find_column(dataframe, possible_names):
 
-    fig.update_layout(
-
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-
-        font=dict(
-            family="Arial, sans-serif",
-            size=13
-        ),
-
-        margin=dict(
-            t=50,
-            b=40,
-            l=50,
-            r=30
-        ),
-
-        xaxis=dict(
-            showgrid=True,
-            gridcolor="rgba(128,128,128,0.15)"
-        ),
-
-        yaxis=dict(
-            showgrid=True,
-            gridcolor="rgba(128,128,128,0.15)"
-        ),
-
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1
-        ),
-
-        hovermode="x unified"
-    )
-
-    return fig
-
-
-# ============================================================
-# MODEL PREDICTION
-# ============================================================
-
-def model_prediction_frame(data):
-
-    package = load_volume_model()
-
-    if package is None:
+    if dataframe.empty:
         return None
 
-    try:
+    column_map = {
+        column.lower().strip(): column
+        for column in dataframe.columns
+    }
 
-        model = package["model"]
-        features = package["features"]
+    for name in possible_names:
 
-        X = data.reindex(
-            columns=features,
-            fill_value=0
+        name = name.lower().strip()
+
+        if name in column_map:
+            return column_map[name]
+
+    return None
+
+
+# ============================================================
+# DETECT COLUMNS
+# ============================================================
+
+datetime_column = find_column(
+    df,
+    [
+        "datetime",
+        "timestamp",
+        "date_time",
+        "date",
+        "time",
+    ],
+)
+
+road_column = find_column(
+    df,
+    [
+        "road_name",
+        "road",
+        "road_segment",
+        "segment",
+        "location",
+    ],
+)
+
+volume_column = find_column(
+    df,
+    [
+        "traffic_volume",
+        "vehicle_count",
+        "volume",
+        "vehicles",
+        "traffic_count",
+        "vehicle_volume",
+    ],
+)
+
+speed_column = find_column(
+    df,
+    [
+        "avg_speed",
+        "average_speed",
+        "speed",
+        "vehicle_speed",
+    ],
+)
+
+congestion_column = find_column(
+    df,
+    [
+        "congestion_level",
+        "congestion",
+        "traffic_level",
+        "congestion_status",
+    ],
+)
+
+
+# ============================================================
+# DATA PREPROCESSING
+# ============================================================
+
+processed_df = df.copy()
+
+if not processed_df.empty:
+
+    # Convert datetime
+    if datetime_column:
+
+        processed_df[datetime_column] = pd.to_datetime(
+            processed_df[datetime_column],
+            errors="coerce",
         )
 
-        predictions = model.predict(X)
+    # Convert numeric columns
+    if volume_column:
 
-        return predictions
+        processed_df[volume_column] = pd.to_numeric(
+            processed_df[volume_column],
+            errors="coerce",
+        )
 
-    except Exception as e:
+    if speed_column:
 
-        st.warning(f"Prediction error: {e}")
-
-        return None
-
-
-# ============================================================
-# HELPER FUNCTIONS
-# ============================================================
-
-def page_header(title, subtitle=None):
-
-    st.title(title)
-
-    if subtitle:
-        st.caption(subtitle)
-
-    st.divider()
-
-
-def show_kpis(items):
-    """
-    items format:
-
-    [
-        {
-            "label": "Total Records",
-            "value": "48,000",
-            "delta": None
-        }
-    ]
-    """
-
-    columns = st.columns(len(items))
-
-    for col, item in zip(columns, items):
-
-        with col:
-            with st.container(border=True):
-
-                st.metric(
-                    label=item["label"],
-                    value=item["value"],
-                    delta=item.get("delta")
-                )
-
-
-def chart_container(title, subtitle=None):
-
-    container = st.container(border=True)
-
-    with container:
-
-        st.subheader(title)
-
-        if subtitle:
-            st.caption(subtitle)
-
-        return container
-
-
-def safe_mean(dataframe, column):
-
-    if column in dataframe.columns:
-        return dataframe[column].mean()
-
-    return 0
+        processed_df[speed_column] = pd.to_numeric(
+            processed_df[speed_column],
+            errors="coerce",
+        )
 
 
 # ============================================================
@@ -223,1582 +514,915 @@ def safe_mean(dataframe, column):
 
 with st.sidebar:
 
-    st.title("🚦 FlowCast")
+    st.markdown(
+        """
+        <div class="sidebar-brand">
 
-    st.caption("Traffic Intelligence Platform")
+            <div class="brand-row">
 
-    st.divider()
+                <div class="brand-icon">
+                    🚦
+                </div>
 
-    st.subheader("ANALYTICS")
+                <div>
 
-    analytics_page = st.radio(
+                    <div class="brand-title">
+                        FlowCast
+                    </div>
 
-        "Analytics",
+                    <div class="brand-subtitle">
+                        Traffic Intelligence
+                    </div>
 
-        [
-            "Overview",
-            "Historical Trends",
-            "Congestion Heatmap",
-            "Road Comparison",
-            "Weather vs Traffic"
-        ],
+                </div>
 
-        label_visibility="collapsed"
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    st.divider()
+    # ---------------- ANALYTICS ----------------
 
-    st.subheader("PREDICTIONS")
-
-    prediction_page = st.radio(
-
-        "Predictions",
-
-        [
-            "Live Prediction",
-            "Forecast Visualisation",
-            "Prediction Confidence"
-        ],
-
-        label_visibility="collapsed"
+    st.markdown(
+        '<div class="section-title">ANALYTICS</div>',
+        unsafe_allow_html=True,
     )
 
-    st.divider()
-
-    st.subheader("SYSTEM")
-
-    system_page = st.radio(
-
-        "System",
-
-        [
-            "Model Performance",
-            "Feature Importance",
-            "Data Upload",
-            "Reports"
-        ],
-
-        label_visibility="collapsed"
+    st.markdown(
+        """
+        <div class="active-menu">
+            ▦ &nbsp; Overview
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    st.divider()
+    st.button("⌁  Historical Trends", use_container_width=True)
+    st.button("⠿  Congestion Map", use_container_width=True)
+    st.button("╱╲  Road Comparison", use_container_width=True)
+    st.button("☁  Weather vs Traffic", use_container_width=True)
 
-    # Navigation selector
-    if "active_page" not in st.session_state:
-        st.session_state.active_page = "Overview"
+    # ---------------- PREDICTIONS ----------------
 
-    analytics_options = [
-        "Overview",
-        "Historical Trends",
-        "Congestion Heatmap",
-        "Road Comparison",
-        "Weather vs Traffic"
-    ]
+    st.markdown(
+        '<div class="section-title">PREDICTIONS</div>',
+        unsafe_allow_html=True,
+    )
 
-    prediction_options = [
-        "Live Prediction",
-        "Forecast Visualisation",
-        "Prediction Confidence"
-    ]
+    st.button("▷  Live Prediction", use_container_width=True)
+    st.button("⌁  Forecast View", use_container_width=True)
+    st.button("⬡  Confidence Band", use_container_width=True)
 
-    system_options = [
-        "Model Performance",
-        "Feature Importance",
-        "Data Upload",
-        "Reports"
-    ]
+    # ---------------- SYSTEM ----------------
 
-    # Detect active page
-    if analytics_page != "Overview":
-        st.session_state.active_page = analytics_page
+    st.markdown(
+        '<div class="section-title">SYSTEM</div>',
+        unsafe_allow_html=True,
+    )
 
-    if prediction_page != "Live Prediction":
-        st.session_state.active_page = prediction_page
+    st.button("⚙  Model Performance", use_container_width=True)
+    st.button("⇧  Data Upload", use_container_width=True)
 
-    if system_page != "Model Performance":
-        st.session_state.active_page = system_page
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    active = st.session_state.active_page
-
-    if not df.empty:
-
-        st.success("Data loaded")
+    if not processed_df.empty:
 
         st.caption(
-            f"{len(df):,} records available"
+            f"Dataset loaded: {len(processed_df):,} records"
         )
 
     else:
 
-        st.error("No data found")
+        st.caption("No dataset loaded")
 
 
 # ============================================================
-# NO DATA GUARD
+# MAIN HEADER
 # ============================================================
 
-if df.empty:
+st.markdown(
+    """
+    <div class="breadcrumb">
+        🚦 &nbsp; FLOWCAST / OVERVIEW
+    </div>
 
-    st.warning("No processed FlowCast dataset found.")
+    <div class="page-title">
+        Traffic Overview
+    </div>
 
-    st.code(
-        "python run_pipeline.py",
-        language="bash"
-    )
+    <div class="page-subtitle">
+        Real-time snapshot of network-wide flow metrics
+    </div>
 
-    st.info(
-        "Run the pipeline first to generate "
-        "data/processed/flowcast_features.csv"
+    <div class="header-line"></div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# ============================================================
+# EMPTY DATA STATE
+# ============================================================
+
+if processed_df.empty:
+
+    st.warning(
+        """
+        No FlowCast dataset found.
+
+        Make sure your dataset is located at:
+
+        data/processed/flowcast_features.csv
+        """
     )
 
     st.stop()
 
 
 # ============================================================
-# OVERVIEW
+# CALCULATE METRICS
 # ============================================================
 
-if active == "Overview":
+total_records = len(processed_df)
 
-    page_header(
 
-        "Traffic Overview",
+# Road segments
+if road_column:
 
-        "Real-time snapshot of network-wide traffic metrics"
-    )
+    road_segments = processed_df[
+        road_column
+    ].nunique()
 
-    # --------------------------------------------------------
-    # KPI DATA
-    # --------------------------------------------------------
+else:
 
-    records = len(df)
+    road_segments = 0
 
-    roads = (
-        df["road_id"].nunique()
-        if "road_id" in df.columns
-        else 0
-    )
 
-    avg_volume = safe_mean(
-        df,
-        "traffic_volume"
-    )
+# Average traffic volume
+if volume_column:
 
-    avg_speed = safe_mean(
-        df,
-        "avg_speed"
-    )
+    average_volume = processed_df[
+        volume_column
+    ].mean()
 
-    # --------------------------------------------------------
-    # KPI CARDS
-    # --------------------------------------------------------
+    if pd.isna(average_volume):
+        average_volume = 0
 
-    show_kpis([
+else:
 
-        {
-            "label": "Total Records",
-            "value": f"{records:,}"
-        },
+    average_volume = 0
 
-        {
-            "label": "Road Segments",
-            "value": f"{roads:,}"
-        },
 
-        {
-            "label": "Avg Traffic Volume",
-            "value": f"{avg_volume:,.0f}",
-            "delta": "vehicles / window"
-        },
+# Average speed
+if speed_column:
 
-        {
-            "label": "Avg Speed",
-            "value": f"{avg_speed:.1f}",
-            "delta": "km/h"
-        }
+    average_speed = processed_df[
+        speed_column
+    ].mean()
 
-    ])
+    if pd.isna(average_speed):
+        average_speed = 0
 
-    st.write("")
+else:
 
-    # --------------------------------------------------------
-    # HOURLY VOLUME + CONGESTION
-    # --------------------------------------------------------
-
-    col1, col2 = st.columns([3, 2])
-
-    # --------------------------------------------------------
-    # HOURLY VOLUME
-    # --------------------------------------------------------
-
-    with col1:
-
-        with st.container(border=True):
-
-            st.subheader("Hourly Volume Pattern")
-
-            st.caption(
-                "Network-wide average traffic volume by hour"
-            )
-
-            if "hour" in df.columns:
-
-                hourly = (
-                    df.groupby("hour")["traffic_volume"]
-                    .mean()
-                    .reset_index()
-                )
-
-            else:
-
-                hourly = df.copy()
-
-                hourly["hour"] = hourly[
-                    "timestamp"
-                ].dt.hour
-
-                hourly = (
-                    hourly.groupby("hour")[
-                        "traffic_volume"
-                    ]
-                    .mean()
-                    .reset_index()
-                )
-
-            fig = go.Figure()
-
-            fig.add_trace(
-
-                go.Scatter(
-
-                    x=hourly["hour"],
-                    y=hourly["traffic_volume"],
-
-                    mode="lines",
-
-                    line=dict(
-                        color="#3B82F6",
-                        width=3
-                    ),
-
-                    fill="tozeroy",
-
-                    fillcolor="rgba(59,130,246,0.12)",
-
-                    name="Traffic Volume"
-                )
-            )
-
-            apply_theme(fig)
-
-            fig.update_layout(
-
-                height=380,
-
-                xaxis_title="Hour of Day",
-
-                yaxis_title="Average Vehicles"
-            )
-
-            st.plotly_chart(
-
-                fig,
-
-                use_container_width=True,
-
-                config={
-                    "displayModeBar": False
-                }
-            )
-
-    # --------------------------------------------------------
-    # CONGESTION SPLIT
-    # --------------------------------------------------------
-
-    with col2:
-
-        with st.container(border=True):
-
-            st.subheader("Congestion Split")
-
-            st.caption(
-                "Distribution of traffic congestion states"
-            )
-
-            if "congestion_level" in df.columns:
-
-                congestion = (
-                    df["congestion_level"]
-                    .value_counts()
-                    .reset_index()
-                )
-
-                congestion.columns = [
-                    "Congestion",
-                    "Count"
-                ]
-
-                color_map = {
-
-                    "Free-flow": "#22C55E",
-                    "Moderate": "#F59E0B",
-                    "Heavy": "#F97316",
-                    "Severe": "#EF4444"
-                }
-
-                fig = px.pie(
-
-                    congestion,
-
-                    names="Congestion",
-
-                    values="Count",
-
-                    hole=0.65,
-
-                    color="Congestion",
-
-                    color_discrete_map=color_map
-                )
-
-                apply_theme(fig)
-
-                fig.update_layout(
-
-                    height=380,
-
-                    showlegend=True
-                )
-
-                st.plotly_chart(
-
-                    fig,
-
-                    use_container_width=True,
-
-                    config={
-                        "displayModeBar": False
-                    }
-                )
-
-            else:
-
-                st.info(
-                    "Congestion data is not available."
-                )
-
-    # --------------------------------------------------------
-    # SPEED DISTRIBUTION
-    # --------------------------------------------------------
-
-    st.write("")
-
-    with st.container(border=True):
-
-        st.subheader("Speed Distribution")
-
-        st.caption(
-            "Distribution of vehicle speeds across the network"
-        )
-
-        if "avg_speed" in df.columns:
-
-            fig = px.histogram(
-
-                df,
-
-                x="avg_speed",
-
-                nbins=40,
-
-                labels={
-                    "avg_speed": "Speed (km/h)"
-                }
-            )
-
-            fig.update_traces(
-                marker_color="#8B5CF6"
-            )
-
-            apply_theme(fig)
-
-            fig.update_layout(
-                showlegend=False
-            )
-
-            st.plotly_chart(
-                fig,
-                use_container_width=True,
-                config={
-                    "displayModeBar": False
-                }
-            )
+    average_speed = 0
 
 
 # ============================================================
-# LIVE PREDICTION
+# KPI CARDS
 # ============================================================
 
-elif active == "Live Prediction":
+metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
 
-    page_header(
 
-        "Live Prediction",
+with metric_col1:
 
-        "Predict traffic volume for the selected road segment"
+    st.markdown(
+        f"""
+        <div class="metric-card">
+
+            <div class="metric-label">
+                Total Records
+            </div>
+
+            <div class="metric-value">
+                {total_records:,.0f}
+            </div>
+
+            <div class="metric-subtitle">
+                across all segments
+            </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    col1, col2 = st.columns([1, 2])
 
-    with col1:
+with metric_col2:
 
-        with st.container(border=True):
+    st.markdown(
+        f"""
+        <div class="metric-card">
 
-            st.subheader("Prediction Controls")
+            <div class="metric-label">
+                Road Segments
+            </div>
 
-            roads = sorted(
-                df["road_id"]
-                .dropna()
-                .unique()
-            )
+            <div class="metric-value">
+                {road_segments:,.0f}
+            </div>
 
-            selected_road = st.selectbox(
-                "Road Segment",
-                roads
-            )
+            <div class="metric-subtitle">
+                active sensors
+            </div>
 
-            horizon = st.slider(
-                "Forecast Horizon",
-                min_value=1,
-                max_value=12,
-                value=1
-            )
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-            run_prediction = st.button(
-                "Run Prediction",
-                use_container_width=True,
-                type="primary"
-            )
 
-    with col2:
+with metric_col3:
 
-        with st.container(border=True):
+    st.markdown(
+        f"""
+        <div class="metric-card">
 
-            st.subheader("Prediction Result")
+            <div class="metric-label">
+                Avg Volume
+            </div>
 
-            road_df = (
-                df[df["road_id"] == selected_road]
-                .sort_values("timestamp")
-            )
+            <div class="metric-value">
+                {average_volume:,.0f}
+            </div>
 
-            latest = road_df.tail(1)
+            <div class="metric-subtitle">
+                vehicles / window
+            </div>
 
-            prediction = model_prediction_frame(
-                latest
-            )
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-            if prediction is None:
 
-                st.warning(
-                    "No trained XGBoost model found."
-                )
+with metric_col4:
 
-                st.info(
-                    "Run the model training pipeline first."
-                )
+    st.markdown(
+        f"""
+        <div class="metric-card">
 
-            else:
+            <div class="metric-label">
+                Avg Speed
+            </div>
 
-                predicted_value = prediction[0]
+            <div class="metric-value">
+                {average_speed:.1f}
+            </div>
 
-                st.metric(
+            <div class="metric-subtitle">
+                km/h network-wide
+            </div>
 
-                    "Predicted Traffic Volume",
-
-                    f"{predicted_value:,.0f} vehicles"
-                )
-
-                st.divider()
-
-                row = latest.iloc[0]
-
-                c1, c2, c3 = st.columns(3)
-
-                with c1:
-
-                    st.metric(
-
-                        "Current Volume",
-
-                        f"{row.get('traffic_volume', 0):,.0f}"
-                    )
-
-                with c2:
-
-                    st.metric(
-
-                        "Average Speed",
-
-                        f"{row.get('avg_speed', 0):.1f} km/h"
-                    )
-
-                with c3:
-
-                    st.metric(
-
-                        "Congestion",
-
-                        str(
-                            row.get(
-                                "congestion_level",
-                                "Unknown"
-                            )
-                        )
-                    )
-
-    # --------------------------------------------------------
-    # RECENT TREND
-    # --------------------------------------------------------
-
-    if "selected_road" in locals():
-
-        with st.container(border=True):
-
-            st.subheader("Recent Traffic Trend")
-
-            recent = road_df.tail(100)
-
-            fig = px.line(
-
-                recent,
-
-                x="timestamp",
-
-                y="traffic_volume"
-            )
-
-            fig.update_traces(
-                line_color="#3B82F6"
-            )
-
-            apply_theme(fig)
-
-            st.plotly_chart(
-
-                fig,
-
-                use_container_width=True,
-
-                config={
-                    "displayModeBar": False
-                }
-            )
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 # ============================================================
-# HISTORICAL TRENDS
+# SPACE
 # ============================================================
 
-elif active == "Historical Trends":
+st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
-    page_header(
 
-        "Historical Trends",
+# ============================================================
+# CHART LAYOUT
+# ============================================================
 
-        "Explore traffic volume and speed over time"
+chart_col1, chart_col2 = st.columns([1.65, 1])
+
+
+# ============================================================
+# HOURLY VOLUME PATTERN
+# ============================================================
+
+with chart_col1:
+
+    st.markdown(
+        """
+        <div class="chart-card">
+
+            <div class="chart-title">
+                Hourly volume pattern
+            </div>
+
+            <div class="chart-subtitle">
+                Network-wide average across all road segments
+            </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    roads = ["All"] + sorted(
-        df["road_id"]
-        .dropna()
-        .unique()
-        .tolist()
-    )
+    # Create hourly data
 
-    col1, col2 = st.columns([1, 3])
+    if datetime_column and volume_column:
 
-    with col1:
-
-        selected_road = st.selectbox(
-            "Road",
-            roads
-        )
-
-        metric = st.radio(
-
-            "Metric",
-
-            [
-                "Traffic Volume",
-                "Average Speed"
+        chart_df = processed_df.dropna(
+            subset=[
+                datetime_column,
+                volume_column,
             ]
-        )
+        ).copy()
 
-    data = df.copy()
+        if not chart_df.empty:
 
-    if selected_road != "All":
+            chart_df["hour"] = chart_df[
+                datetime_column
+            ].dt.hour
 
-        data = data[
-            data["road_id"] == selected_road
-        ]
-
-    column = (
-        "traffic_volume"
-        if metric == "Traffic Volume"
-        else "avg_speed"
-    )
-
-    with col2:
-
-        with st.container(border=True):
-
-            st.subheader(metric)
-
-            fig = px.line(
-
-                data.sort_values("timestamp"),
-
-                x="timestamp",
-
-                y=column
+            hourly_data = (
+                chart_df
+                .groupby("hour")[volume_column]
+                .mean()
+                .reset_index()
             )
 
-            fig.update_traces(
-                line_color="#3B82F6"
+            # Make sure all 24 hours exist
+            full_hours = pd.DataFrame(
+                {"hour": range(24)}
             )
 
-            apply_theme(fig)
+            hourly_data = full_hours.merge(
+                hourly_data,
+                on="hour",
+                how="left",
+            )
 
-            st.plotly_chart(
+            hourly_data[volume_column] = (
+                hourly_data[volume_column]
+                .interpolate()
+                .bfill()
+                .ffill()
+                .fillna(0)
+            )
 
-                fig,
+        else:
 
-                use_container_width=True,
-
-                config={
-                    "displayModeBar": False
+            hourly_data = pd.DataFrame(
+                {
+                    "hour": range(24),
+                    volume_column: [0] * 24,
                 }
             )
 
+    elif volume_column:
 
-# ============================================================
-# CONGESTION HEATMAP
-# ============================================================
+        # If datetime doesn't exist,
+        # create a trend from row order
 
-elif active == "Congestion Heatmap":
+        sample_size = min(
+            24,
+            len(processed_df),
+        )
 
-    page_header(
+        values = (
+            processed_df[volume_column]
+            .dropna()
+            .head(sample_size)
+            .tolist()
+        )
 
-        "Congestion Heatmap",
+        if len(values) < 24:
 
-        "Traffic congestion severity across roads and hours"
-    )
+            values = values + [0] * (
+                24 - len(values)
+            )
 
-    if (
-        "congestion_level" not in df.columns
-        or "road_id" not in df.columns
-    ):
-
-        st.warning(
-            "Required congestion data is unavailable."
+        hourly_data = pd.DataFrame(
+            {
+                "hour": range(24),
+                volume_column: values[:24],
+            }
         )
 
     else:
 
-        severity_map = {
-
-            "Free-flow": 0,
-
-            "Moderate": 1,
-
-            "Heavy": 2,
-
-            "Severe": 3
-        }
-
-        heat_df = df.copy()
-
-        if "hour" not in heat_df.columns:
-
-            heat_df["hour"] = (
-                heat_df["timestamp"]
-                .dt.hour
-            )
-
-        heat_df["severity"] = (
-            heat_df["congestion_level"]
-            .map(severity_map)
+        hourly_data = pd.DataFrame(
+            {
+                "hour": range(24),
+                "volume": [0] * 24,
+            }
         )
 
-        heatmap = (
+        volume_column = "volume"
 
-            heat_df.groupby(
-                ["road_id", "hour"]
-            )["severity"]
 
-            .mean()
+    fig_hourly = go.Figure()
 
-            .reset_index()
+    fig_hourly.add_trace(
 
-            .pivot(
+        go.Scatter(
 
-                index="road_id",
+            x=hourly_data["hour"],
 
-                columns="hour",
+            y=hourly_data[volume_column],
 
-                values="severity"
-            )
+            mode="lines",
+
+            line=dict(
+                color="#3B82D0",
+                width=3,
+                shape="spline",
+                smoothing=1.1,
+            ),
+
+            fill="tozeroy",
+
+            fillcolor="rgba(59,130,208,0.08)",
+
+            hovertemplate=(
+                "Hour: %{x}:00"
+                "<br>Volume: %{y:,.0f}"
+                "<extra></extra>"
+            ),
         )
-
-        with st.container(border=True):
-
-            st.subheader(
-                "Congestion Severity Grid"
-            )
-
-            fig = px.imshow(
-
-                heatmap,
-
-                aspect="auto",
-
-                color_continuous_scale=[
-
-                    "#22C55E",
-
-                    "#F59E0B",
-
-                    "#F97316",
-
-                    "#EF4444"
-                ],
-
-                zmin=0,
-
-                zmax=3
-            )
-
-            apply_theme(fig)
-
-            fig.update_layout(
-
-                height=max(
-                    450,
-                    len(heatmap) * 30
-                )
-            )
-
-            st.plotly_chart(
-
-                fig,
-
-                use_container_width=True
-            )
-
-
-# ============================================================
-# ROAD COMPARISON
-# ============================================================
-
-elif active == "Road Comparison":
-
-    page_header(
-
-        "Road Comparison",
-
-        "Compare performance metrics across road segments"
     )
 
-    required = [
 
-        "road_id",
+    fig_hourly.update_layout(
 
-        "traffic_volume",
+        height=300,
 
-        "avg_speed"
+        margin=dict(
+            l=45,
+            r=15,
+            t=10,
+            b=35,
+        ),
+
+        paper_bgcolor="#1A1B1D",
+
+        plot_bgcolor="#1A1B1D",
+
+        showlegend=False,
+
+        hovermode="x unified",
+
+        xaxis=dict(
+
+            title=None,
+
+            tickmode="array",
+
+            tickvals=[
+                0,
+                3,
+                6,
+                9,
+                12,
+                15,
+                18,
+                21,
+            ],
+
+            ticktext=[
+                "0:00",
+                "3:00",
+                "6:00",
+                "9:00",
+                "12:00",
+                "15:00",
+                "18:00",
+                "21:00",
+            ],
+
+            showgrid=True,
+
+            gridcolor="#30343A",
+
+            zeroline=False,
+
+            color="#9BA1A9",
+        ),
+
+        yaxis=dict(
+
+            title=None,
+
+            showgrid=True,
+
+            gridcolor="#30343A",
+
+            zeroline=False,
+
+            color="#9BA1A9",
+
+            tickformat=",",
+        ),
+    )
+
+
+    st.plotly_chart(
+        fig_hourly,
+        use_container_width=True,
+        config={
+            "displayModeBar": False,
+        },
+    )
+
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+# ============================================================
+# CONGESTION SPLIT
+# ============================================================
+
+with chart_col2:
+
+    st.markdown(
+        """
+        <div class="chart-card">
+
+            <div class="chart-title">
+                Congestion split
+            </div>
+
+            <div class="chart-subtitle">
+                Share of time in each congestion state
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+    # --------------------------------------------------------
+    # PREPARE CONGESTION DATA
+    # --------------------------------------------------------
+
+    if congestion_column:
+
+        congestion_data = (
+            processed_df[congestion_column]
+            .astype(str)
+            .str.strip()
+            .value_counts()
+        )
+
+        labels = congestion_data.index.tolist()
+
+        values = congestion_data.values.tolist()
+
+    else:
+
+        labels = [
+            "Free-flow",
+            "Moderate",
+            "Severe",
+        ]
+
+        values = [
+            60,
+            28,
+            12,
+        ]
+
+
+    # Normalize names
+
+    display_labels = []
+
+    for label in labels:
+
+        label_lower = label.lower()
+
+        if (
+            "free" in label_lower
+            or "low" in label_lower
+            or "light" in label_lower
+        ):
+
+            display_labels.append(
+                "Free-flow"
+            )
+
+        elif (
+            "moderate" in label_lower
+            or "medium" in label_lower
+        ):
+
+            display_labels.append(
+                "Moderate"
+            )
+
+        elif (
+            "severe" in label_lower
+            or "high" in label_lower
+            or "heavy" in label_lower
+        ):
+
+            display_labels.append(
+                "Severe"
+            )
+
+        else:
+
+            display_labels.append(
+                str(label)
+            )
+
+
+    # Calculate percentages
+
+    total_congestion = sum(values)
+
+    if total_congestion == 0:
+        total_congestion = 1
+
+
+    percentages = [
+        (value / total_congestion) * 100
+        for value in values
     ]
 
-    if all(
-        col in df.columns
-        for col in required
+
+    # Legend
+
+    color_map = {
+        "Free-flow": "#36B89C",
+        "Moderate": "#FFB000",
+        "Severe": "#F05454",
+    }
+
+
+    legend_html = '<div class="legend-container">'
+
+
+    for label, percentage in zip(
+        display_labels,
+        percentages,
     ):
 
-        aggregation = {
+        color = color_map.get(
+            label,
+            "#3B82D0",
+        )
 
-            "traffic_volume": "mean",
+        legend_html += f"""
+        <div class="legend-item">
 
-            "avg_speed": "mean"
-        }
+            <span
+                class="legend-dot"
+                style="background:{color};"
+            ></span>
 
-        if "travel_time" in df.columns:
-            aggregation["travel_time"] = "mean"
+            {label} {percentage:.0f}%
 
-        if "occupancy" in df.columns:
-            aggregation["occupancy"] = "mean"
+        </div>
+        """
 
-        summary = (
 
-            df.groupby("road_id")
+    legend_html += "</div>"
+
+
+    st.markdown(
+        legend_html,
+        unsafe_allow_html=True,
+    )
+
+
+    colors = []
+
+    for label in display_labels:
+
+        colors.append(
+            color_map.get(
+                label,
+                "#3B82D0",
+            )
+        )
+
+
+    fig_congestion = go.Figure(
+
+        data=[
+            go.Pie(
+
+                labels=display_labels,
+
+                values=values,
+
+                hole=0.64,
+
+                marker=dict(
+                    colors=colors,
+                    line=dict(
+                        color="#1A1B1D",
+                        width=0,
+                    ),
+                ),
+
+                textinfo="none",
+
+                hovertemplate=(
+                    "%{label}"
+                    "<br>%{percent}"
+                    "<extra></extra>"
+                ),
+            )
+        ]
+    )
+
+
+    fig_congestion.update_layout(
+
+        height=275,
+
+        margin=dict(
+            l=0,
+            r=0,
+            t=0,
+            b=0,
+        ),
+
+        paper_bgcolor="#1A1B1D",
+
+        plot_bgcolor="#1A1B1D",
+
+        showlegend=False,
+    )
+
+
+    st.plotly_chart(
+        fig_congestion,
+        use_container_width=True,
+        config={
+            "displayModeBar": False,
+        },
+    )
+
+
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+# ============================================================
+# LOWER SECTION
+# ============================================================
+
+st.markdown(
+    "<div style='height:10px'></div>",
+    unsafe_allow_html=True,
+)
+
+
+# ============================================================
+# ROAD PERFORMANCE TABLE
+# ============================================================
+
+st.markdown(
+    """
+    <div class="data-card">
+
+        <div class="chart-title">
+            Road Network Summary
+        </div>
+
+        <div class="chart-subtitle">
+            Performance overview across monitored road segments
+        </div>
+
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# ============================================================
+# BUILD SUMMARY TABLE
+# ============================================================
+
+if road_column:
+
+    aggregation = {}
+
+    if volume_column:
+        aggregation[volume_column] = "mean"
+
+    if speed_column:
+        aggregation[speed_column] = "mean"
+
+
+    if aggregation:
+
+        summary_df = (
+
+            processed_df
+
+            .groupby(road_column)
 
             .agg(aggregation)
 
             .reset_index()
+
         )
 
-        metric = st.selectbox(
-
-            "Compare by",
-
-            summary.columns[
-                1:
-            ].tolist()
-        )
-
-        with st.container(border=True):
-
-            fig = px.bar(
-
-                summary.sort_values(
-                    metric,
-                    ascending=True
-                ),
-
-                x=metric,
-
-                y="road_id",
-
-                orientation="h"
-            )
-
-            fig.update_traces(
-                marker_color="#3B82F6"
-            )
-
-            apply_theme(fig)
-
-            fig.update_layout(
-                height=max(
-                    400,
-                    len(summary) * 35
-                )
-            )
-
-            st.plotly_chart(
-
-                fig,
-
-                use_container_width=True,
-
-                config={
-                    "displayModeBar": False
-                }
-            )
-
-        st.subheader("Road Summary")
-
-        st.dataframe(
-
-            summary,
-
-            use_container_width=True,
-
-            hide_index=True
-        )
-
-
-# ============================================================
-# WEATHER VS TRAFFIC
-# ============================================================
-
-elif active == "Weather vs Traffic":
-
-    page_header(
-
-        "Weather vs Traffic",
-
-        "Relationship between weather conditions and traffic volume"
-    )
-
-    sample = df.sample(
-        min(5000, len(df)),
-        random_state=42
-    )
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        if (
-            "rainfall" in sample.columns
-            and "traffic_volume" in sample.columns
-        ):
-
-            with st.container(border=True):
-
-                st.subheader(
-                    "Rainfall vs Traffic Volume"
-                )
-
-                fig = px.scatter(
-
-                    sample,
-
-                    x="rainfall",
-
-                    y="traffic_volume",
-
-                    opacity=0.6
-                )
-
-                apply_theme(fig)
-
-                st.plotly_chart(
-
-                    fig,
-
-                    use_container_width=True,
-
-                    config={
-                        "displayModeBar": False
-                    }
-                )
-
-    with col2:
-
-        if (
-            "visibility" in sample.columns
-            and "traffic_volume" in sample.columns
-        ):
-
-            with st.container(border=True):
-
-                st.subheader(
-                    "Visibility vs Traffic Volume"
-                )
-
-                fig = px.scatter(
-
-                    sample,
-
-                    x="visibility",
-
-                    y="traffic_volume",
-
-                    opacity=0.6
-                )
-
-                apply_theme(fig)
-
-                st.plotly_chart(
-
-                    fig,
-
-                    use_container_width=True,
-
-                    config={
-                        "displayModeBar": False
-                    }
-                )
-
-
-# ============================================================
-# FORECAST VISUALISATION
-# ============================================================
-
-elif active == "Forecast Visualisation":
-
-    page_header(
-
-        "Forecast Visualisation",
-
-        "Compare actual traffic volume against model predictions"
-    )
-
-    package = load_volume_model()
-
-    if package is None:
-
-        st.warning(
-            "No trained model found."
-        )
-
-    else:
-
-        roads = sorted(
-            df["road_id"]
-            .dropna()
-            .unique()
-        )
-
-        selected_road = st.selectbox(
-            "Road Segment",
-            roads
-        )
-
-        data = (
-
-            df[
-                df["road_id"] == selected_road
-            ]
-
-            .sort_values("timestamp")
-
-            .tail(300)
-
-            .copy()
-        )
-
-        prediction = model_prediction_frame(
-            data
-        )
-
-        if prediction is not None:
-
-            data["predicted_volume"] = prediction
-
-            actual = data["traffic_volume"]
-
-            predicted = data[
-                "predicted_volume"
-            ]
-
-            mae = (
-                actual - predicted
-            ).abs().mean()
-
-            mape = (
-
-                (
-                    (
-                        actual - predicted
-                    ).abs()
-
-                    / actual.replace(
-                        0,
-                        np.nan
-                    )
-                )
-
-                .mean()
-
-                * 100
-            )
-
-            show_kpis([
-
-                {
-                    "label": "Mean Absolute Error",
-                    "value": f"{mae:,.1f}"
-                },
-
-                {
-                    "label": "MAPE",
-                    "value": f"{mape:.2f}%"
-                },
-
-                {
-                    "label": "Data Points",
-                    "value": f"{len(data):,}"
-                },
-
-                {
-                    "label": "Road",
-                    "value": str(selected_road)
-                }
-
-            ])
-
-            st.write("")
-
-            with st.container(border=True):
-
-                st.subheader(
-                    "Actual vs Predicted"
-                )
-
-                fig = go.Figure()
-
-                fig.add_trace(
-
-                    go.Scatter(
-
-                        x=data["timestamp"],
-
-                        y=data["traffic_volume"],
-
-                        name="Actual",
-
-                        line=dict(
-                            color="#3B82F6",
-                            width=2
-                        )
-                    )
-                )
-
-                fig.add_trace(
-
-                    go.Scatter(
-
-                        x=data["timestamp"],
-
-                        y=data["predicted_volume"],
-
-                        name="Predicted",
-
-                        line=dict(
-                            color="#F59E0B",
-
-                            width=2,
-
-                            dash="dash"
-                        )
-                    )
-                )
-
-                apply_theme(fig)
-
-                st.plotly_chart(
-
-                    fig,
-
-                    use_container_width=True,
-
-                    config={
-                        "displayModeBar": False
-                    }
-                )
-
-
-# ============================================================
-# PREDICTION CONFIDENCE
-# ============================================================
-
-elif active == "Prediction Confidence":
-
-    page_header(
-
-        "Prediction Confidence",
-
-        "Prediction intervals based on model residuals"
-    )
-
-    residual_path = (
-        MODEL_DIR
-        / "xgboost_volume_predictions.csv"
-    )
-
-    if not residual_path.exists():
-
-        st.warning(
-            "Residual prediction data not found."
-        )
-
-    else:
-
-        residual_df = pd.read_csv(
-            residual_path
-        )
-
-        if "residual" not in residual_df.columns:
-
-            st.warning(
-                "Residual column not found."
-            )
-
-        else:
-
-            residuals = (
-                residual_df["residual"]
-                .dropna()
-            )
-
-            lower = residuals.quantile(
-                0.05
-            )
-
-            upper = residuals.quantile(
-                0.95
-            )
-
-            show_kpis([
-
-                {
-                    "label": "Lower Bound",
-                    "value": f"{lower:,.0f}"
-                },
-
-                {
-                    "label": "Upper Bound",
-                    "value": f"{upper:,.0f}"
-                },
-
-                {
-                    "label": "Interval Width",
-                    "value": f"{upper - lower:,.0f}"
-                },
-
-                {
-                    "label": "Confidence Level",
-                    "value": "90%"
-                }
-
-            ])
-
-
-# ============================================================
-# MODEL PERFORMANCE
-# ============================================================
-
-elif active == "Model Performance":
-
-    page_header(
-
-        "Model Performance",
-
-        "Performance evaluation of trained FlowCast models"
-    )
-
-    scoreboards = [
-
-        (
-            MODEL_DIR
-            / "regression_scoreboard.csv",
-
-            "Regression Models"
-        ),
-
-        (
-            MODEL_DIR
-            / "congestion_classification_scoreboard.csv",
-
-            "Congestion Classification"
-        ),
-
-        (
-            MODEL_DIR
-            / "accident_risk_classification_scoreboard.csv",
-
-            "Accident Risk Classification"
-        ),
-
-        (
-            DEEP_MODEL_DIR
-            / "lstm_scoreboard.csv",
-
-            "LSTM Model"
-        )
-
-    ]
-
-    found = False
-
-    for path, title in scoreboards:
-
-        if path.exists():
-
-            found = True
-
-            with st.container(border=True):
-
-                st.subheader(title)
-
-                scoreboard = pd.read_csv(
-                    path
-                )
-
-                st.dataframe(
-
-                    scoreboard,
-
-                    use_container_width=True,
-
-                    hide_index=True
-                )
-
-    if not found:
-
-        st.info(
-            "No model performance files found. "
-            "Run the training pipeline first."
-        )
-
-
-# ============================================================
-# FEATURE IMPORTANCE
-# ============================================================
-
-elif active == "Feature Importance":
-
-    page_header(
-
-        "Feature Importance",
-
-        "Features contributing most to traffic volume predictions"
-    )
-
-    package = load_volume_model()
-
-    if package is None:
-
-        st.warning(
-            "Train the model first."
-        )
-
-    else:
-
-        model = package.get("model")
-        features = package.get(
-            "features",
-            []
-        )
-
-        estimator = model
-
-        if hasattr(
-            model,
-            "named_steps"
-        ):
-
-            estimator = model.named_steps.get(
-                "model",
-                model
-            )
-
-        if hasattr(
-            estimator,
-            "feature_importances_"
-        ):
-
-            importance = pd.DataFrame({
-
-                "Feature": features,
-
-                "Importance": (
-                    estimator
-                    .feature_importances_
-                )
-
-            })
-
-            importance = (
-
-                importance
-
-                .sort_values(
-                    "Importance",
-                    ascending=False
-                )
-
-                .head(25)
-            )
-
-            with st.container(border=True):
-
-                st.subheader(
-                    "Top Feature Importances"
-                )
-
-                fig = px.bar(
-
-                    importance.sort_values(
-                        "Importance"
-                    ),
-
-                    x="Importance",
-
-                    y="Feature",
-
-                    orientation="h"
-                )
-
-                fig.update_traces(
-                    marker_color="#8B5CF6"
-                )
-
-                apply_theme(fig)
-
-                st.plotly_chart(
-
-                    fig,
-
-                    use_container_width=True,
-
-                    config={
-                        "displayModeBar": False
-                    }
-                )
-
-        else:
-
-            st.info(
-                "Feature importance is not available "
-                "for this model."
-            )
-
-
-# ============================================================
-# DATA UPLOAD
-# ============================================================
-
-elif active == "Data Upload":
-
-    page_header(
-
-        "Data Upload",
-
-        "Upload and validate a new traffic dataset"
-    )
-
-    uploaded_file = st.file_uploader(
-
-        "Upload Traffic CSV",
-
-        type=["csv"]
-    )
-
-    if uploaded_file:
-
-        uploaded_df = pd.read_csv(
-            uploaded_file
-        )
-
-        required_columns = {
-
-            "road_id",
-
-            "timestamp",
-
-            "traffic_volume",
-
-            "avg_speed"
+        rename_columns = {
+            road_column: "Road Segment",
         }
 
-        missing = (
-            required_columns
-            - set(uploaded_df.columns)
+        if volume_column:
+            rename_columns[
+                volume_column
+            ] = "Average Volume"
+
+        if speed_column:
+            rename_columns[
+                speed_column
+            ] = "Average Speed"
+
+
+        summary_df = summary_df.rename(
+            columns=rename_columns
         )
 
-        show_kpis([
 
-            {
-                "label": "Rows",
-                "value": f"{len(uploaded_df):,}"
-            },
+        if "Average Volume" in summary_df.columns:
 
-            {
-                "label": "Columns",
-                "value": str(
-                    uploaded_df.shape[1]
-                )
-            },
-
-            {
-                "label": "Missing Columns",
-                "value": str(
-                    len(missing)
-                )
-            }
-
-        ])
-
-        st.write("")
-
-        if missing:
-
-            st.error(
-
-                "Missing required columns: "
-
-                + ", ".join(missing)
-            )
-
-        else:
-
-            st.success(
-                "Dataset schema looks valid."
-            )
-
-        with st.container(border=True):
-
-            st.subheader(
-                "Dataset Preview"
-            )
-
-            st.dataframe(
-
-                uploaded_df.head(100),
-
-                use_container_width=True,
-
-                hide_index=True
-            )
+            summary_df[
+                "Average Volume"
+            ] = summary_df[
+                "Average Volume"
+            ].round(0)
 
 
-# ============================================================
-# REPORTS
-# ============================================================
+        if "Average Speed" in summary_df.columns:
 
-elif active == "Reports":
+            summary_df[
+                "Average Speed"
+            ] = summary_df[
+                "Average Speed"
+            ].round(1)
 
-    page_header(
 
-        "Reports & Insights",
-
-        "Generated analysis and data quality reports"
-    )
-
-    report_path = (
-        REPORT_DIR
-        / "data_quality.md"
-    )
-
-    if report_path.exists():
-
-        with st.container(border=True):
-
-            report_content = (
-                report_path
-                .read_text(
-                    encoding="utf-8"
-                )
-            )
-
-            st.markdown(
-                report_content
-            )
+        st.dataframe(
+            summary_df,
+            use_container_width=True,
+            hide_index=True,
+            height=280,
+        )
 
     else:
 
-        st.info(
-            "No data quality report found."
+        st.dataframe(
+            processed_df.head(20),
+            use_container_width=True,
+            hide_index=True,
+            height=280,
         )
 
-    figures_dir = (
-        REPORT_DIR
-        / "figures"
+else:
+
+    st.dataframe(
+        processed_df.head(20),
+        use_container_width=True,
+        hide_index=True,
+        height=280,
     )
 
-    if figures_dir.exists():
 
-        images = sorted(
-            figures_dir.glob("*.png")
-        )
+# ============================================================
+# FOOTER
+# ============================================================
 
-        if images:
+st.markdown(
+    """
+    <div style="
+        border-top: 1px solid #2A2D31;
+        margin-top: 35px;
+        padding-top: 18px;
+        padding-bottom: 10px;
+        text-align: center;
+        color: #737982;
+        font-size: 13px;
+    ">
 
-            st.subheader(
-                "Generated Figures"
-            )
+        FlowCast Traffic Intelligence System
 
-            cols = st.columns(2)
+        &nbsp; • &nbsp;
 
-            for i, image in enumerate(images):
+        Data-driven traffic analytics
 
-                with cols[i % 2]:
-
-                    with st.container(border=True):
-
-                        st.image(
-                            str(image),
-                            caption=image.stem
-                        )
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
