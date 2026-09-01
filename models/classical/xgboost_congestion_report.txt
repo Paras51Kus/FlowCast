@@ -1,0 +1,10 @@
+              precision    recall  f1-score   support
+
+   Free-flow       1.00      1.00      1.00     18005
+       Heavy       0.99      0.97      0.98      2935
+    Moderate       0.99      1.00      0.99      7165
+      Severe       0.98      0.99      0.99      1729
+
+    accuracy                           0.99     29834
+   macro avg       0.99      0.99      0.99     29834
+weighted avg       0.99      0.99      0.99     29834

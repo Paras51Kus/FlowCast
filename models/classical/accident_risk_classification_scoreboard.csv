@@ -1,0 +1,3 @@
+Accuracy,Precision_macro,Recall_macro,F1_macro,ConfusionMatrix,Model
+1.0,1.0,1.0,1.0,"[[34786, 0], [0, 341]]",RandomForest
+1.0,1.0,1.0,1.0,"[[34786, 0], [0, 341]]",XGBoost

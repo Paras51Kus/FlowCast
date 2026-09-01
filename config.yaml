@@ -1,0 +1,38 @@
+project:
+  name: FlowCast
+  random_state: 42
+
+data:
+  raw_dir: data/raw
+  interim_dir: data/interim
+  processed_dir: data/processed
+  traffic_file: traffic_sensor_log.csv
+  weather_file: weather_observations.csv
+  calendar_file: calendar_events.csv
+
+models:
+  classical_dir: models/classical
+  deep_learning_dir: models/deep_learning
+  model_cards_dir: models/model_cards
+
+reports:
+  figures_dir: reports/figures
+  quality_report: reports/data_quality.md
+
+targets:
+  volume: traffic_volume
+  speed: avg_speed
+  travel_time: travel_time
+  congestion: congestion_level
+  accident: accident_risk
+
+forecast:
+  horizon: 1
+  sequence_length: 12
+
+validation:
+  test_size: 0.20
+
+features:
+  lags: [1, 2, 3, 6, 12, 24]
+  rolling_windows: [3, 6, 12, 24]
