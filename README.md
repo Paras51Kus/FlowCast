@@ -90,8 +90,7 @@ python run_pipeline.py
 Launch the dashboard:
 
 ```powershell
-streamlit run dashboard/app.py
-```
+python -m streamlit run dashboard/app.py```
 
 Run tests:
 
